@@ -281,12 +281,14 @@ const ChatBox = () => {
         message: input,
         context: sharedContext.data
       });
+      setRetryCount(0); // Reset retry count on success
       return response.data.message;
     } catch (error) {
       const apiError = error as ApiError;
       if (retryCount < maxRetries) {
         const delay = baseDelay * Math.pow(2, retryCount);
         setWaitTimeLeft(delay / 1000);
+        setRetryCount(retryCount + 1); // Increment retry count
         await new Promise(resolve => setTimeout(resolve, delay));
         return attemptRequest(retryCount + 1);
       }
