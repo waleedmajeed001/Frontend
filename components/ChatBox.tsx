@@ -19,7 +19,7 @@ interface ChatSession {
 
 interface SharedContext {
   lastUpdated: number;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 interface UserProfileData {
@@ -27,6 +27,17 @@ interface UserProfileData {
   age: string;
   hobbies: string;
   additionalInfo: string;
+}
+
+interface ApiResponse {
+  message: string;
+  error?: string;
+  status?: number;
+}
+
+interface ApiError {
+  message: string;
+  status?: number;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-addyvd6th-waleed-majeeds-projects.vercel.app';
@@ -186,8 +197,6 @@ const ChatBox = () => {
     };
   }, [waitTimeLeft]);
 
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   // Handle hydration and page refresh
   useEffect(() => {
     setIsClient(true);
@@ -254,15 +263,11 @@ const ChatBox = () => {
   };
 
   const updateSessionTitle = (sessionId: string, firstMessage: string) => {
-    setSessions(prev => prev.map(session => {
-      if (session.id === sessionId) {
-        return {
-          ...session,
-          title: firstMessage.slice(0, 30) + (firstMessage.length > 30 ? "..." : "")
-        };
-      }
-      return session;
-    }));
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId 
+        ? { ...session, title: firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '') }
+        : session
+    ));
   };
 
   const handleProfileSave = (data: UserProfileData) => {
@@ -272,251 +277,81 @@ const ChatBox = () => {
 
   const attemptRequest = async (retryCount: number = 0): Promise<string> => {
     try {
-      // Get current session's messages for history
-      const currentSession = sessions.find(s => s.id === activeSessionId);
-      const history = currentSession?.messages || [];
-
-      // Prepare request payload
-      const payload = {
+      const response = await axios.post<ApiResponse>(`${API_URL}/api/chat`, {
         message: input,
-        history: history,
-        userProfile: userProfile ? {
-          name: userProfile.name,
-          age: userProfile.age,
-          hobbies: userProfile.hobbies,
-          additionalInfo: userProfile.additionalInfo
-        } : null
-      };
-
-      // Check internet connectivity first
-      try {
-        await fetch('https://www.google.com/favicon.ico', {
-          mode: 'no-cors',
-          cache: 'no-store'
-        });
-      } catch (e) {
-        return 'Please check your internet connection and try again.';
+        context: sharedContext.data
+      });
+      return response.data.message;
+    } catch (error) {
+      const apiError = error as ApiError;
+      if (retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount);
+        setWaitTimeLeft(delay / 1000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return attemptRequest(retryCount + 1);
       }
-
-      try {
-        console.log('Attempting to connect to:', API_URL); // Debug log
-        
-        // First, try to check if the backend is accessible
-        try {
-          const healthCheck = await axios.get(API_URL, {
-            timeout: 5000,
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-          console.log('Backend health check:', healthCheck.status);
-        } catch (healthError) {
-          console.error('Backend health check failed:', healthError);
-          return 'The chat service is not accessible. Please make sure the backend is running.';
-        }
-
-        // If health check passes, proceed with the chat request
-        const payload = {
-          message: input,
-          history: history,
-          userProfile: userProfile ? {
-            name: userProfile.name,
-            age: userProfile.age,
-            hobbies: userProfile.hobbies,
-            additionalInfo: userProfile.additionalInfo
-          } : null
-        };
-
-        console.log('Sending chat request with payload:', payload);
-
-        const response = await axios.post(`${API_URL}/chat`, payload, {
-          timeout: 60000, // 60 second timeout
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Origin': window.location.origin
-          }
-        });
-
-        console.log('Chat response received:', {
-          status: response.status,
-          data: response.data
-        });
-
-        if (response.status === 200 && response.data) {
-          return response.data.reply || response.data;
-        } else {
-          console.error('Unexpected response format:', response);
-          throw new Error('Invalid response from chat service');
-        }
-
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error('Axios error details:', {
-            message: error.message,
-            code: error.code,
-            status: error.response?.status,
-            data: error.response?.data,
-            config: error.config
-          });
-
-          if (error.code === 'ECONNABORTED') {
-            return 'Request timed out. The server took too long to respond. Please try again.';
-          }
-          if (error.response) {
-            if (error.response.status === 404) {
-              return 'Chat endpoint not found. Please verify the backend URL and endpoints are correct.';
-            }
-            if (error.response.status === 500) {
-              return 'The chat service encountered an error. Please try again later.';
-            }
-            return `Error: ${error.response.data?.detail || error.response.data || 'The chat service returned an error.'}`;
-          } else if (error.request) {
-            return 'Unable to reach the chat service. Please check if the backend server is running and accessible.';
-          }
-        }
-        // Handle non-Axios errors
-        console.error('Unexpected error:', error);
-        return 'An unexpected error occurred. Please try again.';
-      }
-    } catch (error: any) {
-      // Handle network errors first
-      if (!error.response || error.code === 'ECONNABORTED') {
-        if (retryCount < maxRetries) {
-          const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return attemptRequest(retryCount + 1);
-        }
-        return 'Unable to connect to the chat service. Please check your internet connection and try again.';
-      }
-
-      // Handle rate limit errors (both direct and nested)
-      const isRateLimit = 
-        error?.response?.status === 429 ||
-        (error?.response?.status === 500 && 
-         error?.response?.data?.detail?.includes('429: Resource has been exhausted'));
-
-      if (isRateLimit) {
-        if (retryCount < maxRetries) {
-          const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return attemptRequest(retryCount + 1);
-        }
-        const waitTime = Math.ceil(baseDelay / 1000);
-        setWaitTimeLeft(waitTime);
-        return `⏳ Please wait ${waitTime} seconds before sending another message. The AI service is currently busy. This helps ensure everyone gets a fair chance to use the service.`;
-      }
-
-      // Handle specific HTTP status codes
-      const errorMessages: Record<number, string> = {
-        400: 'Invalid request. Please try rephrasing your message.',
-        401: 'Authentication failed. Please refresh the page and try again.',
-        403: 'Access denied. Please check your permissions.',
-        404: 'Chat service not found. Please make sure the server is running.',
-        422: 'Invalid message format. Please try again.',
-        500: error?.response?.data?.detail || 'Server error. Please try again later.'
-      };
-
-      if (error?.response?.status && errorMessages[error.response.status]) {
-        return errorMessages[error.response.status];
-      }
-
-      // Default error message
-      return error?.message || 'An unexpected error occurred. Please try again.';
+      throw new Error(apiError.message || 'Failed to get response');
     }
   };
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setInput('');
+    setInput("");
     setIsLoading(true);
 
-    // Add user message immediately
-    const newUserMessage: Message = { 
-      role: 'user',
-      content: userMessage 
-    };
-    
-    setSessions(prev => prev.map(session => {
-      if (session.id === activeSessionId) {
-        return { 
-          ...session, 
-          messages: [...session.messages, newUserMessage] 
-        };
-      }
-      return session;
-    }));
-
     try {
-      const response = await attemptRequest();
-      
-      // Add AI response
-      setSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          // Only filter out temporary error messages
-          const filteredMessages = session.messages.filter(m => 
-            !m.content.startsWith('Error:') && 
-            !m.content.includes('rate limit') &&
-            !m.content.includes('AI service is busy')
-          );
-          
-          const assistantMessage: Message = {
-            role: 'assistant',
-            content: response
-          };
-
-          // Update session title if this is the first user message
-          const isFirstMessage = filteredMessages.length === 1;
-          if (isFirstMessage) {
-            const title = userMessage.slice(0, 30) + (userMessage.length > 30 ? "..." : "");
-            return {
+      // Add user message to current session
+      setSessions(prev => prev.map(session => 
+        session.id === activeSessionId
+          ? {
               ...session,
-              title: title,
-              messages: [...filteredMessages, assistantMessage]
-            };
-          }
+              messages: [...session.messages, { role: 'user', content: userMessage }]
+            }
+          : session
+      ));
 
-          return {
-            ...session,
-            messages: [...filteredMessages, assistantMessage]
-          };
-        }
-        return session;
-      }));
+      // Get AI response
+      const response = await attemptRequest(retryCount);
 
-      // Save to localStorage
-      const updatedSession = sessions.find(s => s.id === activeSessionId);
-      if (updatedSession) {
-        localStorage.setItem(`chatSession_${activeSessionId}`, JSON.stringify(updatedSession));
+      // Add AI response to current session
+      setSessions(prev => prev.map(session => 
+        session.id === activeSessionId
+          ? {
+              ...session,
+              messages: [...session.messages, { role: 'assistant', content: response }]
+            }
+          : session
+      ));
+
+      // Update session title if it's the first message
+      const currentSession = sessions.find(s => s.id === activeSessionId);
+      if (currentSession?.messages.length === 2) {
+        updateSessionTitle(activeSessionId, userMessage);
       }
 
-    } catch (error: any) {
-      // Add error message to chat
-      setSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          const errorMessage: Message = {
-            role: 'assistant',
-            content: error?.message || 'Failed to send message. Please try again.'
-          };
-          return {
-            ...session,
-            messages: [...session.messages, errorMessage]
-          };
-        }
-        return session;
-      }));
-
+    } catch (error) {
+      const apiError = error as ApiError;
+      setSessions(prev => prev.map(session => 
+        session.id === activeSessionId
+          ? {
+              ...session,
+              messages: [...session.messages, { 
+                role: 'assistant', 
+                content: apiError.message || 'An error occurred. Please try again.' 
+              }]
+            }
+          : session
+      ));
     } finally {
       setIsLoading(false);
-      scrollToBottom();
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       sendMessage();
     }
   };
