@@ -38,20 +38,14 @@ const Page = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        mode: 'cors',
         body: JSON.stringify({ message: userMessage }),
       });
 
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = {};
-        }
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
