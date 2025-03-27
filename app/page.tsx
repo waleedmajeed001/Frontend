@@ -38,12 +38,13 @@ const Page = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        mode: 'cors',
-        credentials: 'omit',
         body: JSON.stringify({ message: userMessage }),
       });
+
+      // Log the response status and headers for debugging
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -52,6 +53,7 @@ const Page = () => {
       }
 
       const data = await response.json();
+      console.log('Response data:', data); // Log the response data for debugging
       
       if (!data.response) {
         throw new Error('Invalid response format from server');
