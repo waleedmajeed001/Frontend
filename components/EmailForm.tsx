@@ -25,7 +25,12 @@ export default function EmailForm({ isDarkMode }: EmailFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -38,7 +43,8 @@ export default function EmailForm({ isDarkMode }: EmailFormProps) {
       setMessage('Email sent successfully!');
       setFormData({ to: '', subject: '', body: '' });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to send email');
+      console.error('Error:', error);
+      setMessage(error instanceof Error ? error.message : 'Failed to send email. Please try again later.');
     } finally {
       setIsLoading(false);
     }

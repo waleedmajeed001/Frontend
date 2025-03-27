@@ -24,7 +24,12 @@ export default function SMSForm({ isDarkMode }: SMSFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -37,7 +42,8 @@ export default function SMSForm({ isDarkMode }: SMSFormProps) {
       setMessage('SMS sent successfully!');
       setFormData({ to: '', message: '' });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to send SMS');
+      console.error('Error:', error);
+      setMessage(error instanceof Error ? error.message : 'Failed to send SMS. Please try again later.');
     } finally {
       setIsLoading(false);
     }

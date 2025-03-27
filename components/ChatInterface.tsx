@@ -41,23 +41,33 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         },
+        credentials: 'include',
         body: JSON.stringify({ message: userMessage }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to get response');
       }
 
       const data = await response.json();
       
+      if (!data.response) {
+        throw new Error('Invalid response format');
+      }
+
       // Add AI response to chat
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please try again.' 
+        content: 'Sorry, I encountered an error. Please try again later.' 
       }]);
     } finally {
       setIsLoading(false);
