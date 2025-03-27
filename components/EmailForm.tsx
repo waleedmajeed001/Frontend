@@ -35,13 +35,13 @@ export default function EmailForm({ isDarkMode }: EmailFormProps) {
         let errorData;
         try {
           errorData = await response.json();
-        } catch (e) {
+        } catch {
           errorData = {};
         }
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      await response.json();
       setMessage('Email sent successfully!');
       setFormData({ to: '', subject: '', body: '' });
     } catch (error) {

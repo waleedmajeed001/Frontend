@@ -51,7 +51,7 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
         let errorData;
         try {
           errorData = await response.json();
-        } catch (e) {
+        } catch {
           errorData = {};
         }
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);

@@ -34,13 +34,13 @@ export default function SMSForm({ isDarkMode }: SMSFormProps) {
         let errorData;
         try {
           errorData = await response.json();
-        } catch (e) {
+        } catch {
           errorData = {};
         }
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      await response.json();
       setMessage('SMS sent successfully!');
       setFormData({ to: '', message: '' });
     } catch (error) {
