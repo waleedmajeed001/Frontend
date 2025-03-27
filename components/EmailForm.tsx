@@ -25,12 +25,7 @@ export default function EmailForm({ isDarkMode }: EmailFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
         },
-        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
