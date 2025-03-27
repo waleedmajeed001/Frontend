@@ -65,9 +65,9 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-300px)] min-h-[500px]">
+    <div className="flex flex-col h-[calc(100vh-300px)] min-h-[350px] sm:min-h-[500px]">
       {/* Messages Container */}
-      <div className={`flex-1 overflow-y-auto mb-4 space-y-4 p-4 rounded-lg ${
+      <div className={`flex-1 overflow-y-auto mb-2 sm:mb-4 space-y-2.5 sm:space-y-4 p-2.5 sm:p-4 rounded-lg ${
         isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
       }`}>
         {messages.map((message, index) => (
@@ -85,7 +85,7 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
             }}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-3 shadow-lg transition-all duration-300 hover:shadow-xl ${
+              className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-2.5 sm:p-3 shadow-lg transition-all duration-300 hover:shadow-xl text-sm sm:text-base ${
                 message.role === 'user'
                   ? isDarkMode
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -101,7 +101,7 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
         ))}
         {isLoading && (
           <div className="flex justify-start animate-pulse">
-            <div className={`rounded-lg p-3 ${
+            <div className={`rounded-lg p-2.5 sm:p-3 ${
               isDarkMode ? 'bg-gray-600 text-gray-100' : 'bg-white text-gray-800'
             }`}>
               <div className="flex space-x-2">
@@ -116,13 +116,13 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mt-auto">
+      <form onSubmit={handleSubmit} className="flex gap-2 mt-auto px-2.5 sm:px-4 py-2 sm:py-3">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className={`flex-1 p-3 rounded-lg border transition-all duration-300 focus:scale-[1.02] ${
+          className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg border text-sm sm:text-base transition-all duration-300 focus:scale-[1.02] ${
             isDarkMode
               ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500'
               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500'
@@ -132,7 +132,7 @@ export default function ChatInterface({ isDarkMode }: ChatInterfaceProps) {
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+          className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all duration-300 transform hover:scale-105 active:scale-95 ${
             isLoading || !input.trim()
               ? isDarkMode
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
