@@ -24,20 +24,27 @@ export default function SMSForm({ isDarkMode }: SMSFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.detail || 'Failed to send SMS');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = {};
+        }
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
+      const data = await response.json();
       setMessage('SMS sent successfully!');
       setFormData({ to: '', message: '' });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error details:', error);
       setMessage(error instanceof Error ? error.message : 'Failed to send SMS. Please try again later.');
     } finally {
       setIsLoading(false);

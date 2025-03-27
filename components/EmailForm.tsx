@@ -25,20 +25,27 @@ export default function EmailForm({ isDarkMode }: EmailFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.detail || 'Failed to send email');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = {};
+        }
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
+      const data = await response.json();
       setMessage('Email sent successfully!');
       setFormData({ to: '', subject: '', body: '' });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error details:', error);
       setMessage(error instanceof Error ? error.message : 'Failed to send email. Please try again later.');
     } finally {
       setIsLoading(false);
